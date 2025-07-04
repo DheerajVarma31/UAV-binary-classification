@@ -37,16 +37,11 @@ def extract_spectrogram_image(y, sr):
 
 # 3️⃣ Load Dataset
 def load_dataset():
-    X, y = load_dataset()
-    print(f"✅ Total loaded samples: {len(X)}")
-
-    if len(X) == 0:
-        raise Exception("🚨 No data loaded! Please check dataset folder paths and NumPy version.")
-
+    X, y = [], []
     for label, path in zip([1, 0], [UAV_PATH, NON_UAV_PATH]):
         print(f"📂 Scanning: {path}")
         files = glob(os.path.join(path, "*.wav"))
-        print(f"🔎 Found {len(files)} files for label {label}")
+        print(f"🔎 Found {len(files)} .wav files for label {label}")
         for f in files[:300]:
             try:
                 y_audio, sr = preprocess_audio(f)
@@ -54,8 +49,8 @@ def load_dataset():
                 X.append(img)
                 y.append(label)
             except Exception as e:
-                print(f"⚠️ Error with {f}: {e}")
-    print(f"✅ Loaded total: {len(X)} samples")
+                print(f"⚠️ Error loading {f}: {e}")
+    print(f"✅ Total loaded samples: {len(X)}")
     return np.array(X), np.array(y)
 
 X, y = load_dataset()
