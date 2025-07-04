@@ -12,8 +12,8 @@ from keras import layers, models
 from glob import glob
 
 # 📁 Dataset Path Configuration
-UAV_PATH = "drone-dataset-uav/Drone sound"
-NON_UAV_PATH = "drone-dataset-uav/Other sounds"
+UAV_PATH = "C:/Users/dheer/UAV-binary-classification/drone-dataset-uav/Drone sound"
+NON_UAV_PATH = "C:/Users/dheer/UAV-binary-classification/drone-dataset-uav/Other sounds"
 
 # 1️⃣ Preprocess Audio
 def preprocess_audio(file_path, sample_rate=16000):
@@ -39,16 +39,19 @@ def extract_spectrogram_image(y, sr):
 def load_dataset():
     X, y = [], []
     for label, path in zip([1, 0], [UAV_PATH, NON_UAV_PATH]):
-        files = glob(os.path.join(path, "*.wav"))[:300]  # limit per class
-        for f in files:
+        print(f"Loading from: {path}")
+        files = glob(os.path.join(path, "*.wav"))
+        print(f"Found {len(files)} .wav files")
+        for f in files[:300]:
             try:
                 y_audio, sr = preprocess_audio(f)
                 img = extract_spectrogram_image(y_audio, sr)
                 X.append(img)
                 y.append(label)
-            except:
-                continue
+            except Exception as e:
+                print(f"Error loading {f}: {e}")
     return np.array(X), np.array(y)
+
 
 X, y = load_dataset()
 X = X / 255.0
