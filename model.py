@@ -39,9 +39,9 @@ def extract_spectrogram_image(y, sr):
 def load_dataset():
     X, y = [], []
     for label, path in zip([1, 0], [UAV_PATH, NON_UAV_PATH]):
-        print(f"Loading from: {path}")
+        print(f"📂 Scanning: {path}")
         files = glob(os.path.join(path, "*.wav"))
-        print(f"Found {len(files)} .wav files")
+        print(f"🔎 Found {len(files)} files for label {label}")
         for f in files[:300]:
             try:
                 y_audio, sr = preprocess_audio(f)
@@ -49,9 +49,9 @@ def load_dataset():
                 X.append(img)
                 y.append(label)
             except Exception as e:
-                print(f"Error loading {f}: {e}")
+                print(f"⚠️ Error with {f}: {e}")
+    print(f"✅ Loaded total: {len(X)} samples")
     return np.array(X), np.array(y)
-
 
 X, y = load_dataset()
 X = X / 255.0
