@@ -24,16 +24,29 @@ def preprocess_audio(file_path, sample_rate=16000):
 
 # 2️⃣ Extract Spectrogram Image
 def extract_spectrogram_image(y, sr):
+    import matplotlib
+    matplotlib.use("Agg")  # ✅ Use non-interactive backend
+
+    import matplotlib.pyplot as plt
+    from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+
     S = librosa.feature.melspectrogram(y=y, sr=sr)
     S_dB = librosa.power_to_db(S, ref=np.max)
-    fig = plt.figure(figsize=(2.27, 2.27))
-    librosa.display.specshow(S_dB, sr=sr, x_axis=None, y_axis=None)
-    plt.axis('off')
-    fig.canvas.draw()
-    image = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
-    image = image.reshape(fig.canvas.get_width_height()[::-1] + (3,))
-    plt.close()
-    return image
+
+    fig = plt.figure(figsize=(2.27, 2.27), dpi=100)
+    canvas = FigureCanvas(fig)  # ✅ Create a canvas object
+    ax = fig.add_subplot(111)
+    librosa.display.specshow(S_dB, sr=sr, x_axis=None, y_axis=None, ax=ax)
+    ax.axis('off')
+
+    canvas.draw()
+    image = np.frombuffer(canvas.buffer_rgba(), dtype=np.uint8)
+    image = image.reshape(fig.canvas.get_width_height()[::-1] + (4,))
+    plt.close(fig)
+
+    # remove alpha channel
+    return image[:, :, :3] / 255.0
+
 
 # 3️⃣ Load Dataset
 def load_dataset():
