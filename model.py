@@ -10,6 +10,9 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, confusion_matrix
 from keras import layers, models
 from glob import glob
+from sklearn.utils.class_weight import compute_class_weight
+from collections import Counter
+
 
 # 📁 Dataset Path Configuration
 UAV_PATH = "C:/Users/dheer/UAV-binary-classification/drone-dataset-uav/Drone sound"
@@ -70,6 +73,15 @@ X, y = load_dataset()
 X = X / 255.0
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)
 
+# Compute weights for classes: 0 (non-UAV), 1 (UAV)
+class_weights = compute_class_weight(class_weight='balanced', classes=np.unique(y_train), y=y_train)
+class_weights_dict = dict(enumerate(class_weights))
+print("📊 Class weights:", class_weights_dict)
+
+print("Train class distribution:", Counter(y_train))
+print("Test class distribution:", Counter(y_test))
+
+
 # 4️⃣ Build CNN Model
 def build_cnn(input_shape=(227, 227, 3)):
     model = models.Sequential([
@@ -86,13 +98,21 @@ def build_cnn(input_shape=(227, 227, 3)):
     return model
 
 model = build_cnn()
-model.fit(X_train, y_train, validation_split=0.2, epochs=10, batch_size=16)
+model.fit(
+    X_train,
+    y_train,
+    validation_split=0.2,
+    epochs=15,
+    batch_size=16,
+    class_weight=class_weights_dict  # ✅ This is the key
+)
+
 model.save("uav_binary_cnn_model.h5")
 
 # 5️⃣ Evaluate Model
 y_pred = (model.predict(X_test) > 0.5).astype("int32")
 print(confusion_matrix(y_test, y_pred))
-print(classification_report(y_test, y_pred))
+print(classification_report(y_test, y_pred,zero_division=1))
 
 # 6️⃣ Streamlit App
 
