@@ -24,7 +24,7 @@ def preprocess_audio(file_path, sample_rate=16000):
 
 # 2️⃣ Extract Spectrogram Image
 def extract_spectrogram_image(y, sr):
-    S = librosa.feature.melspectrogram(y, sr=sr)
+    S = librosa.feature.melspectrogram(y=y, sr=sr)
     S_dB = librosa.power_to_db(S, ref=np.max)
     fig = plt.figure(figsize=(2.27, 2.27))
     librosa.display.specshow(S_dB, sr=sr, x_axis=None, y_axis=None)
