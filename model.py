@@ -86,16 +86,20 @@ print("Test class distribution:", Counter(y_test))
 def build_cnn(input_shape=(227, 227, 3)):
     model = models.Sequential([
         layers.Conv2D(32, (3, 3), activation='relu', input_shape=input_shape),
-        layers.MaxPooling2D((2, 2)),
+        layers.BatchNormalization(),
+        layers.MaxPooling2D(2, 2),
         layers.Conv2D(64, (3, 3), activation='relu'),
-        layers.MaxPooling2D((2, 2)),
+        layers.BatchNormalization(),
+        layers.MaxPooling2D(2, 2),
         layers.Conv2D(128, (3, 3), activation='relu'),
         layers.Flatten(),
         layers.Dense(128, activation='relu'),
+        layers.Dropout(0.5),
         layers.Dense(1, activation='sigmoid')
     ])
     model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
     return model
+
 
 model = build_cnn()
 model.fit(
@@ -113,6 +117,10 @@ model.save("uav_binary_cnn_model.h5")
 y_pred = (model.predict(X_test) > 0.5).astype("int32")
 print(confusion_matrix(y_test, y_pred))
 print(classification_report(y_test, y_pred,zero_division=1))
+
+import numpy as np
+print("Predictions:", np.unique(y_pred, return_counts=True))
+
 
 # 6️⃣ Streamlit App
 
