@@ -116,7 +116,7 @@ def build_cnn(input_shape=(227, 227, 3)):
 model = build_cnn()
 
 # 🏁 Train
-from tensorflow.keras.callbacks import EarlyStopping
+from keras.callbacks import EarlyStopping
 early_stop = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
 
 model.fit(
