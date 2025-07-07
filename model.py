@@ -9,6 +9,7 @@ import keras
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, confusion_matrix
 from keras import layers, models
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from glob import glob
 from sklearn.utils.class_weight import compute_class_weight
 from collections import Counter
@@ -121,33 +122,6 @@ print(classification_report(y_test, y_pred,zero_division=1))
 import numpy as np
 print("Predictions:", np.unique(y_pred, return_counts=True))
 
-
-# 6️⃣ Streamlit App
-
-def run_streamlit_app():
-    st.set_page_config(page_title="UAV Binary Classification", layout="centered")
-    st.title("🛸 UAV Sound Classifier (Binary)")
-
-    uploaded_file = st.file_uploader("Upload a WAV audio file", type=[".wav"])
-
-    if uploaded_file is not None:
-        try:
-            y, sr = librosa.load(uploaded_file, sr=16000)
-            y = librosa.util.normalize(y)
-            y, _ = librosa.effects.trim(y, top_db=20)
-            img = extract_spectrogram_image(y, sr)
-            img = img / 255.0
-            img = np.expand_dims(img, axis=0)
-
-            model = tf.keras.models.load_model("uav_binary_cnn_model.h5")
-            pred = model.predict(img)
-            label = "🛸 UAV Detected" if pred[0][0] > 0.5 else "✅ Non-UAV"
-            st.success(label)
-            st.metric(label="Confidence", value=f"{pred[0][0] * 100:.2f}%")
-        except Exception as e:
-            st.error(f"Error processing file: {str(e)}")
-    else:
-        st.info("Please upload a WAV file.")
 
 
 
