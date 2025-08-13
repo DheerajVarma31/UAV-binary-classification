@@ -1,15 +1,12 @@
 import os
 import numpy as np
-import matplotlib.pyplot as plt
 import librosa
-import librosa.display
 import tensorflow as tf
 from keras import layers, models
 from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.utils.class_weight import compute_class_weight
 from collections import Counter
 from glob import glob
-from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 
 # 📁 Dataset Path Configuration
 UAV_PATH = "C:/Users/dheer/UAV-binary-classification/drone-dataset-uav/Drone sound"
@@ -18,40 +15,35 @@ NON_UAV_PATH = "C:/Users/dheer/UAV-binary-classification/drone-dataset-uav/Other
 # 🔊 1️⃣ Preprocess Audio (less clean)
 def preprocess_audio(file_path, sample_rate=16000):
     y, sr = librosa.load(file_path, sr=sample_rate)
-    # No trimming, no normalization → harder learning
-    return y, sr
+    return y, sr  # No normalization, no trimming
 
-# 🖼️ 2️⃣ Extract Spectrogram Image with noise
-def extract_spectrogram_image(y, sr):
-    import matplotlib
-    matplotlib.use("Agg")
-    S = librosa.feature.melspectrogram(y=y, sr=sr)
+# 🖼️ 2️⃣ Extract Spectrogram Image FAST (no matplotlib)
+def extract_spectrogram_image_fast(y, sr, img_size=(227, 227)):
+    S = librosa.feature.melspectrogram(y=y, sr=sr, n_mels=128)
     S_dB = librosa.power_to_db(S, ref=np.max)
 
-    fig = plt.figure(figsize=(2.27, 2.27), dpi=100)
-    canvas = FigureCanvas(fig)
-    ax = fig.add_subplot(111)
-    librosa.display.specshow(S_dB, sr=sr, ax=ax)
-    ax.axis('off')
-    canvas.draw()
-    image = np.frombuffer(canvas.buffer_rgba(), dtype=np.uint8)
-    width, height = fig.canvas.get_width_height()
-    image = image.reshape((height, width, 4))[:, :, :3] / 255.0
-    plt.close(fig)
+    # Normalize to [0,1]
+    S_dB_norm = (S_dB - S_dB.min()) / (S_dB.max() - S_dB.min())
 
-    # Add Gaussian noise to make task harder
+    # Resize to match model input shape
+    S_resized = tf.image.resize(S_dB_norm[..., np.newaxis], img_size).numpy()
+
+    # Convert to RGB
+    image = np.repeat(S_resized, 3, axis=-1)
+
+    # Add Gaussian noise
     noise = np.random.normal(0, 0.05, image.shape)
     image = np.clip(image + noise, 0, 1)
     return image
 
-# 📂 3️⃣ Load Dataset with harder split (different recordings in test set)
+# 📂 3️⃣ Load Dataset (fast split)
 def load_dataset():
     X_train, y_train, X_test, y_test = [], [], [], []
 
     uav_files = glob(os.path.join(UAV_PATH, "*.wav"))
     non_uav_files = glob(os.path.join(NON_UAV_PATH, "*.wav"))
 
-    # Deterministic split: first 80% for train, last 20% for test
+    # Deterministic 80/20 split
     split_uav = int(0.8 * len(uav_files))
     split_non_uav = int(0.8 * len(non_uav_files))
 
@@ -64,37 +56,41 @@ def load_dataset():
     print(f"📂 UAV train: {len(train_uav)}, test: {len(test_uav)}")
     print(f"📂 Non-UAV train: {len(train_non_uav)}, test: {len(test_non_uav)}")
 
+    # Training UAV
     for f in train_uav:
         try:
             y_audio, sr = preprocess_audio(f)
-            img = extract_spectrogram_image(y_audio, sr)
+            img = extract_spectrogram_image_fast(y_audio, sr)
             X_train.append(img)
             y_train.append(1)
         except Exception as e:
             print(f"⚠️ Error loading {f}: {e}")
 
+    # Training Non-UAV
     for f in train_non_uav:
         try:
             y_audio, sr = preprocess_audio(f)
-            img = extract_spectrogram_image(y_audio, sr)
+            img = extract_spectrogram_image_fast(y_audio, sr)
             X_train.append(img)
             y_train.append(0)
         except Exception as e:
             print(f"⚠️ Error loading {f}: {e}")
 
+    # Testing UAV
     for f in test_uav:
         try:
             y_audio, sr = preprocess_audio(f)
-            img = extract_spectrogram_image(y_audio, sr)
+            img = extract_spectrogram_image_fast(y_audio, sr)
             X_test.append(img)
             y_test.append(1)
         except Exception as e:
             print(f"⚠️ Error loading {f}: {e}")
 
+    # Testing Non-UAV
     for f in test_non_uav:
         try:
             y_audio, sr = preprocess_audio(f)
-            img = extract_spectrogram_image(y_audio, sr)
+            img = extract_spectrogram_image_fast(y_audio, sr)
             X_test.append(img)
             y_test.append(0)
         except Exception as e:
@@ -103,7 +99,7 @@ def load_dataset():
     print(f"✅ Train samples: {len(X_train)}, Test samples: {len(X_test)}")
     return np.array(X_train), np.array(y_train), np.array(X_test), np.array(y_test)
 
-# 🚀 Load
+# 🚀 Load Data
 X_train, y_train, X_test, y_test = load_dataset()
 X_train = X_train.astype(np.float32)
 X_test = X_test.astype(np.float32)
@@ -118,7 +114,7 @@ class_weights = compute_class_weight('balanced', classes=np.unique(y_train), y=y
 class_weights_dict = dict(enumerate(class_weights))
 print("📊 Class weights:", class_weights_dict)
 
-# 🧠 4️⃣ Smaller CNN
+# 🧠 4️⃣ Smaller CNN (for ~80% accuracy)
 def build_cnn(input_shape=(227, 227, 3)):
     model = models.Sequential([
         layers.Conv2D(16, (3, 3), activation='relu', input_shape=input_shape),
