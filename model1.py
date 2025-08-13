@@ -22,8 +22,11 @@ def extract_spectrogram_image_fast(y, sr, img_size=(227, 227)):
     S = librosa.feature.melspectrogram(y=y, sr=sr, n_mels=128)
     S_dB = librosa.power_to_db(S, ref=np.max)
 
-    # Normalize to [0,1]
-    S_dB_norm = (S_dB - S_dB.min()) / (S_dB.max() - S_dB.min())
+    # Safe normalization
+    if S_dB.max() != S_dB.min():
+        S_dB_norm = (S_dB - S_dB.min()) / (S_dB.max() - S_dB.min())
+    else:
+        S_dB_norm = np.zeros_like(S_dB)
 
     # Resize to match model input shape
     S_resized = tf.image.resize(S_dB_norm[..., np.newaxis], img_size).numpy()
@@ -35,6 +38,7 @@ def extract_spectrogram_image_fast(y, sr, img_size=(227, 227)):
     noise = np.random.normal(0, 0.05, image.shape)
     image = np.clip(image + noise, 0, 1)
     return image
+
 
 # 📂 3️⃣ Load Dataset (fast split)
 def load_dataset():
