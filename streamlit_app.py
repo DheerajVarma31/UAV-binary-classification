@@ -8,7 +8,7 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 import tensorflow as tf
 
 # Load trained model
-model = tf.keras.models.load_model("uav_binary_lstm_model.h5")
+model = tf.keras.models.load_model("uav_binary_cnn_model.h5")
 
 # 🔊 Preprocess audio
 def preprocess_audio(file_path, sample_rate=16000):
