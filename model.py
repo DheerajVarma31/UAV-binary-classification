@@ -1,4 +1,3 @@
-# ✅ Updated train_model.py for UAV Sound Classification
 
 import os
 import numpy as np
@@ -14,18 +13,18 @@ from collections import Counter
 from glob import glob
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 
-# 📁 Dataset Path Configuration
+#  Dataset Path Configuration
 UAV_PATH = "C:/Users/dheer/UAV-binary-classification/drone-dataset-uav/Drone sound"
 NON_UAV_PATH = "C:/Users/dheer/UAV-binary-classification/drone-dataset-uav/Other sounds"
 
-# 🔊 1️⃣ Preprocess Audio
+# Preprocess Audio
 def preprocess_audio(file_path, sample_rate=16000):
     y, sr = librosa.load(file_path, sr=sample_rate)
     y = librosa.util.normalize(y)
     y_trimmed, _ = librosa.effects.trim(y, top_db=20)
     return y_trimmed, sr
 
-# 🖼️ 2️⃣ Extract Spectrogram Image
+# Extract Spectrogram Image
 def extract_spectrogram_image(y, sr):
     import matplotlib
     matplotlib.use("Agg")
@@ -44,15 +43,15 @@ def extract_spectrogram_image(y, sr):
     plt.close(fig)
     return image[:, :, :3] / 255.0
 
-# 📂 3️⃣ Load Dataset
+#  Load Dataset
 
 def load_dataset():
     X, y = [], []
     uav_files = glob(os.path.join(UAV_PATH, "*.wav"))[:1300]      # Balance classes
     non_uav_files = glob(os.path.join(NON_UAV_PATH, "*.wav"))[:1300]
 
-    print(f"📂 Scanning: {UAV_PATH} - {len(uav_files)} files")
-    print(f"📂 Scanning: {NON_UAV_PATH} - {len(non_uav_files)} files")
+    print(f" Scanning: {UAV_PATH} - {len(uav_files)} files")
+    print(f"Scanning: {NON_UAV_PATH} - {len(non_uav_files)} files")
 
     for f in uav_files:
         try:
@@ -61,7 +60,7 @@ def load_dataset():
             X.append(img)
             y.append(1)
         except Exception as e:
-            print(f"⚠️ Error loading {f}: {e}")
+            print(f" Error loading {f}: {e}")
 
     for f in non_uav_files:
         try:
@@ -70,12 +69,12 @@ def load_dataset():
             X.append(img)
             y.append(0)
         except Exception as e:
-            print(f"⚠️ Error loading {f}: {e}")
+            print(f" Error loading {f}: {e}")
 
     print(f"✅ Total loaded samples: {len(X)}")
     return np.array(X), np.array(y)
 
-# 🚀 Start Training
+# Start Training
 X, y = load_dataset()
 X = X.astype(np.float32)
 y = y.astype(int)
@@ -85,12 +84,12 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, test_size=
 print("Train class distribution:", Counter(y_train))
 print("Test class distribution:", Counter(y_test))
 
-# ⚖️ Class Weights
+#  Class Weights
 class_weights = compute_class_weight('balanced', classes=np.unique(y_train), y=y_train)
 class_weights_dict = dict(enumerate(class_weights))
-print("📊 Class weights:", class_weights_dict)
+print(" Class weights:", class_weights_dict)
 
-# 🧠 4️⃣ Build CNN
+#  Build CNN
 
 def build_cnn(input_shape=(227, 227, 3)):
     model = models.Sequential([
@@ -115,7 +114,7 @@ def build_cnn(input_shape=(227, 227, 3)):
 
 model = build_cnn()
 
-# 🏁 Train
+#  Train
 from keras.callbacks import EarlyStopping
 early_stop = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
 
@@ -128,11 +127,11 @@ model.fit(
     callbacks=[early_stop]
 )
 
-# 💾 Save Model
+#  Save Model
 model.save("uav_binary_cnn_model.h5")
 print("✅ Model saved as uav_binary_cnn_model.h5")
 
-# 📈 Evaluate
+#  Evaluate
 y_pred = (model.predict(X_test) > 0.5).astype("int32")
 print(confusion_matrix(y_test, y_pred))
 print(classification_report(y_test, y_pred, zero_division=1))
